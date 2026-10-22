@@ -384,15 +384,16 @@ func (m *Manager) Reconcile(ctx context.Context, request reconcile.Request) (res
 	completedCh := make(chan struct{})
 	// Starting the manager
 	go func() {
-		if err = mgr.Start(tcpCtx); err != nil {
-			logger.Error(err, "unable to start soot manager")
+		// Goroutine-local: the named return err is read by the deferred cancel once Reconcile has returned.
+		if startErr := mgr.Start(tcpCtx); startErr != nil {
+			logger.Error(startErr, "unable to start soot manager")
 			// The sootManagerAnnotation is used to propagate the error between reconciliations with its state:
 			// this is required to avoid mutex and prevent concurrent read/write on the soot map
 			annotationErr := m.retryTenantControlPlaneAnnotations(ctx, request, func(annotations map[string]string) {
 				annotations[sootManagerAnnotation] = sootManagerFailedAnnotation
 			})
 			if annotationErr != nil {
-				logger.Error(err, "unable to update TenantControlPlane for soot failed annotation")
+				logger.Error(annotationErr, "unable to update TenantControlPlane for soot failed annotation")
 			}
 			// When the manager cannot start we're enqueuing back the request to take advantage of the backoff factor
 			// of the queue: this is a goroutine and cannot return an error since the manager is running on its own,
