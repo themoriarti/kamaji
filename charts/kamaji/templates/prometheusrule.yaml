@@ -1,0 +1,51 @@
+{{- if and (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") .Values.prometheusRule.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    {{- $data := . | mustMergeOverwrite (dict "component" "prometheusrule") -}}
+    {{- include "kamaji.labels" $data | nindent 4 }}
+    {{- with .Values.prometheusRule.additionalLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  name: {{ include "kamaji.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+spec:
+  groups:
+    - name: kamaji
+      rules:
+        # Sleeping and WriteLimited are states the user asked for, not failures.
+        - alert: KamajiTenantControlPlaneNotReady
+          expr: kamaji_tenant_control_plane_status{ready="false", status!~"Sleeping|WriteLimited"} == 1
+          for: 15m
+          labels:
+            severity: critical
+          annotations:
+            summary: '{{`TenantControlPlane {{ $labels.tcp_namespace }}/{{ $labels.tcp_name }} is not ready`}}'
+            description: '{{`TenantControlPlane {{ $labels.tcp_namespace }}/{{ $labels.tcp_name }} has been in status {{ $labels.status }} for more than 15 minutes.`}}'
+        - alert: KamajiDataStoreNotReady
+          expr: kamaji_datastore_status{ready="false"} == 1
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: '{{`DataStore {{ $labels.datastore_name }} is not ready`}}'
+            description: '{{`DataStore {{ $labels.datastore_name }} has had status {{ $labels.status }} for more than 10 minutes; the TenantControlPlanes using it cannot be reconciled.`}}'
+        # Kamaji starts rotating a certificate as soon as it enters --certificate-expiration-deadline (24h by default).
+        - alert: KamajiCertificateNotRotated
+          expr: kamaji_certificates_current{status="expiring"} > 0
+          for: 1h
+          labels:
+            severity: warning
+          annotations:
+            summary: '{{`Certificates of TenantControlPlane {{ $labels.tcp_namespace }}/{{ $labels.tcp_name }} are not being rotated`}}'
+            description: '{{`{{ $value }} {{ $labels.strategy }} certificate(s) of TenantControlPlane {{ $labels.tcp_namespace }}/{{ $labels.tcp_name }} have been within the renewal deadline for more than an hour.`}}'
+        - alert: KamajiCertificateInvalid
+          expr: kamaji_certificates_current{status="invalid"} > 0
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: '{{`TenantControlPlane {{ $labels.tcp_namespace }}/{{ $labels.tcp_name }} has unreadable certificates`}}'
+            description: '{{`{{ $value }} {{ $labels.strategy }} certificate Secret(s) of TenantControlPlane {{ $labels.tcp_namespace }}/{{ $labels.tcp_name }} could not be parsed for more than 15 minutes.`}}'
+{{- end }}
