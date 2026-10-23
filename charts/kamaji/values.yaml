@@ -19,6 +19,12 @@ serviceMonitor:
   # -- Toggle the ServiceMonitor true if you have Prometheus Operator installed and configured
   enabled: false
 
+prometheusRule:
+  # -- Toggle the PrometheusRule with alerts on TenantControlPlane, DataStore and certificate metrics, true if you have Prometheus Operator installed and configured
+  enabled: false
+  # -- Additional labels for the PrometheusRule, e.g. to match the ruleSelector of your Prometheus
+  additionalLabels: {}
+
 # -- The address the probe endpoint binds to. (default ":8081")
 healthProbeBindAddress: ":8081"
 

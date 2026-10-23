@@ -49,6 +49,24 @@ A ready-to-use Grafana dashboard for these metrics is available [here](https://r
 
 ![Kamaji Monitoring Dashboard](../images/kamaji-monitoring-dashboard.png)
 
+### Alerting
+
+The Helm chart can install a `PrometheusRule` with alerts on these metrics. Set `prometheusRule.enabled=true`, and use `prometheusRule.additionalLabels` if your Prometheus selects rules by label:
+
+```yaml
+prometheusRule:
+  enabled: true
+  additionalLabels:
+    release: kube-prometheus-stack
+```
+
+| Alert | Fires when | Severity |
+|-------|------------|----------|
+| `KamajiTenantControlPlaneNotReady` | a TenantControlPlane is not `Ready` for 15 minutes; `Sleeping` and `WriteLimited` are ignored | critical |
+| `KamajiDataStoreNotReady` | a DataStore is not ready for 10 minutes | critical |
+| `KamajiCertificateNotRotated` | certificates stay within `--certificate-expiration-deadline` for an hour, although Kamaji rotates them as soon as they enter it | warning |
+| `KamajiCertificateInvalid` | certificate Secrets cannot be parsed for 15 minutes | warning |
+
 ### Securing the metrics endpoint
 
 By default, the `manager` and `kubeconfig-generator` metrics endpoints are served in plaintext with no authentication, reachable by any workload with network access to the pod. Pass `--metrics-secure=true` (via `extraArgs`/`kubeconfigGenerator.extraArgs` in the Helm chart) to serve metrics over HTTPS and require the caller to authenticate with a bearer token authorized against the bundled `kamaji-metrics-reader` ClusterRole:

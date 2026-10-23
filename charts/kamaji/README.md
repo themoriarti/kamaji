@@ -110,6 +110,8 @@ Here the values you can override:
 | nodeSelector | object | `{}` | Kubernetes node selector rules to schedule Kamaji controller |
 | podAnnotations | object | `{}` | The annotations to apply to the Kamaji controller pods. |
 | podSecurityContext | object | `{"runAsNonRoot":true}` | The securityContext to apply to the Kamaji controller pods. |
+| prometheusRule.additionalLabels | object | `{}` | Additional labels for the PrometheusRule, e.g. to match the ruleSelector of your Prometheus |
+| prometheusRule.enabled | bool | `false` | Toggle the PrometheusRule with alerts on TenantControlPlane, DataStore and certificate metrics, true if you have Prometheus Operator installed and configured |
 | readinessProbe | object | `{"httpGet":{"path":"/readyz","port":"healthcheck"},"initialDelaySeconds":5,"periodSeconds":10}` | The readinessProbe for the controller container |
 | replicaCount | int | `1` | The number of the pod replicas for the Kamaji controller. |
 | resources.limits.cpu | string | `"200m"` |  |
